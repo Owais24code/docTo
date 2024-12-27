@@ -1,0 +1,95 @@
+generator client {
+    provider = "prisma-client-js"
+}
+
+datasource db {
+    provider = "postgresql"
+    url      = env("DATABASE_URL")
+}
+
+// Necessary for Next auth
+model Account {
+    id                       String  @id @default(cuid())
+    userId                   String
+    type                     String
+    provider                 String
+    providerAccountId        String
+    refresh_token            String? // @db.Text
+    access_token             String? // @db.Text
+    expires_at               Int?
+    token_type               String?
+    scope                    String?
+    id_token                 String? // @db.Text
+    session_state            String?
+    user                     User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+    refresh_token_expires_in Int?
+
+    @@unique([provider, providerAccountId])
+}
+
+model Session {
+    id           String   @id @default(cuid())
+    sessionToken String   @unique
+    userId       String
+    expires      DateTime
+    user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model User {
+  id                String    @id @default(cuid())
+  name              String
+  email             String    @unique
+  emailVerified     DateTime?
+  image             String?
+  accounts          Account[] // Presumably for OAuth or other login methods
+  sessions          Session[] // Presumably for authentication sessions
+  role              Role
+  password          String 
+  updatedPasswordAt DateTime? // Timestamp for password updates
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+  doctor            Doctor[]
+}
+
+model Doctor {
+  id           String    @id @default(cuid())
+  userId       String    @unique  // Relates Doctor to a User
+  user         User      @relation(fields: [userId], references: [id])
+  name         String
+  phoneNo      String    @unique
+  speciality   String
+  patients     Patient[] // One-to-many relationship
+  gstNo        String?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+}
+
+model Patient {
+  id           String    @id @default(cuid())
+  name         String
+  phoneNo      String    @unique
+  age          Int
+  diseases     String
+  doctorId     String
+  doctor       Doctor    @relation(fields: [doctorId], references: [id]) // Links Patient to Doctor
+  diagnosis    String
+  medicine     String
+  lastVisit    DateTime
+  sex          String
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+}
+
+enum Role {
+  admin
+  doctor
+}
+
+
+model VerificationToken {
+    identifier String
+    token      String   @unique
+    expires    DateTime
+
+    @@unique([identifier, token])
+}
